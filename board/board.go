@@ -1,8 +1,10 @@
 package board
 
+import "errors"
+
 type Board struct {
 	Size int
-	grid [][]int
+	grid [][]Stone
 }
 
 func New(size int) *Board {
@@ -12,20 +14,24 @@ func New(size int) *Board {
 	}
 }
 
-func gridInit(size int) [][]int {
-	outerlayer := make([][]int, size)
+func gridInit(size int) [][]Stone {
+	outerlayer := make([][]Stone, size)
 	for i := range outerlayer {
-		outerlayer[i] = make([]int, size)
+		outerlayer[i] = make([]Stone, size)
 	}
 	return outerlayer
 }
 
-func (b *Board) Put(player int, x, y int) {
+func (b *Board) Put(player int, x, y int) error {
+	if b.Get(x, y).player != 0 {
+		return errors.New("stone already on specified coordinates. stone cannot be placed")
+	}
 	_x, _y := b.translate(x, y)
-	b.grid[_y][_x] = player
+	b.grid[_y][_x] = Stone{liberties: 4, player: player}
+	return nil
 }
 
-func (b *Board) Get(x, y int) int {
+func (b *Board) Get(x, y int) Stone {
 	_x, _y := b.translate(x, y)
 	return b.grid[_y][_x]
 }

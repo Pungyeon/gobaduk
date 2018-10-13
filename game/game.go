@@ -1,25 +1,20 @@
 package game
 
-import "github.com/Pungyeon/gobaduk/board"
-
-type player int
-
-var (
-	none  player
-	white player = 1
-	black player = 2
+import (
+	"github.com/Pungyeon/gobaduk/board"
+	"github.com/Pungyeon/gobaduk/player"
 )
 
 // Game is an object containing the rules of Go
 type Game struct {
-	player
-	board *board.Board
+	player player.Player
+	board  *board.Board
 }
 
 // New returns a new game of go
 func New(size int) *Game {
 	return &Game{
-		player: white,
+		player: player.WHITE,
 		board:  board.New(size),
 	}
 }
@@ -31,9 +26,5 @@ func (g *Game) Move() *Game {
 }
 
 func (g *Game) changePlayer() {
-	if g.player == white {
-		g.player = black
-	} else {
-		g.player = white
-	}
+	g.player = player.Opposite(g.player)
 }

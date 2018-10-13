@@ -1,15 +1,17 @@
 package board
 
+import "github.com/Pungyeon/gobaduk/player"
+
 type Stone struct {
 	liberties int
-	player    int
+	player    player.Player
 	groupID   int
 }
 
-func NewStone(player int, id int) Stone {
+func NewStone(p player.Player, id int) Stone {
 	return Stone{
 		liberties: 0,
-		player:    player,
+		player:    p,
 		groupID:   id,
 	}
 }

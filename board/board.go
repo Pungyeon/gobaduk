@@ -3,13 +3,17 @@ package board
 import (
 	"errors"
 	"fmt"
+
+	"github.com/Pungyeon/gobaduk/player"
 )
 
 type Board struct {
-	Size   int
-	grid   [][]Stone
-	groups map[int]Group
-	nextID int
+	Size              int
+	grid              [][]Stone
+	groups            map[int]Group
+	nextID            int
+	mergeGroups       []int
+	subtractLibGroups map[int]bool
 }
 
 func New(size int) *Board {
@@ -34,31 +38,43 @@ func (b *Board) getNextID() int {
 	return val
 }
 
-func (b *Board) Put(player int, x, y int) error {
-	if b.Get(x, y).player != 0 {
+func (b *Board) Put(playerColor player.Player, x, y int) error {
+	if b.Get(x, y).player != player.NONE {
 		return errors.New("stone already on specified coordinates. stone cannot be placed")
 	}
-	stone := NewStone(player, b.getNextID())
+	stone := NewStone(playerColor, b.getNextID())
 
-	groupsToMerge := make([]int, 0)
+	b.mergeGroups = make([]int, 0)
+	b.subtractLibGroups = map[int]bool{}
 
 	if y < b.Size {
-		groupsToMerge = b.CheckNeighbours(b.Get(x, y+1), &stone, groupsToMerge)
+		b.CheckNeighbours(b.Get(x, y+1), &stone)
 	}
 	if y > 1 {
-		groupsToMerge = b.CheckNeighbours(b.Get(x, y-1), &stone, groupsToMerge)
+		b.CheckNeighbours(b.Get(x, y-1), &stone)
 	}
 	if x < b.Size {
-		groupsToMerge = b.CheckNeighbours(b.Get(x+1, y), &stone, groupsToMerge)
+		b.CheckNeighbours(b.Get(x+1, y), &stone)
 	}
 	if x > 1 {
-		groupsToMerge = b.CheckNeighbours(b.Get(x-1, y), &stone, groupsToMerge)
+		b.CheckNeighbours(b.Get(x-1, y), &stone)
 	}
 
 	currentGroup := NewGroup(stone)
+	if len(b.mergeGroups) == 0 {
+		b.groups[currentGroup.id] = currentGroup
+	}
 
-	for _, id := range groupsToMerge {
+	for _, id := range b.mergeGroups {
 		b.Merge(currentGroup, b.groups[id])
+	}
+
+	for key, value := range b.subtractLibGroups {
+		tmp := b.groups[key]
+		tmp.liberties--
+		b.groups[key] = tmp
+		fmt.Printf("key: %d, value: %v\n", key, value)
+		fmt.Println("liberties", b.groups[key].liberties)
 	}
 
 	_x, _y := b.translate(x, y)
@@ -76,14 +92,16 @@ func (b *Board) Merge(group Group, mergeGroup Group) {
 	}
 }
 
-func (b *Board) CheckNeighbours(neighbour Stone, stone *Stone, groups []int) []int {
-	if neighbour.player == 0 {
+func (b *Board) CheckNeighbours(neighbour Stone, stone *Stone) {
+	if neighbour.player == player.NONE {
 		stone.liberties++
 	}
 	if neighbour.player == stone.player {
-		groups = append(groups, neighbour.groupID)
+		b.mergeGroups = append(b.mergeGroups, neighbour.groupID)
 	}
-	return groups
+	if neighbour.player == player.Opposite(stone.player) {
+		b.subtractLibGroups[neighbour.groupID] = true
+	}
 }
 
 func (b *Board) Get(x, y int) Stone {
@@ -94,6 +112,5 @@ func (b *Board) Get(x, y int) Stone {
 func (b *Board) translate(x, y int) (int, int) {
 	_y := b.Size - y
 	_x := x - 1
-	fmt.Printf("x: %d, y: %d, _x: %d, _y: %d\n", x, y, _x, _y)
 	return _x, _y
 }

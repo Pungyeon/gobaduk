@@ -58,7 +58,8 @@ func TestGroupLiberties(t *testing.T) {
 	b := New(9)
 	b.Put(1, 3, 3)
 	b.Put(1, 3, 4)
-	expected := 6
+	b.Put(2, 3, 5)
+	expected := 5
 
 	if b.Get(1, 2).liberties != expected {
 		//	t.Errorf("wrong liberty count for group: expected: %d, actual: %d", expected, b.Get(1, 2))
@@ -79,5 +80,30 @@ func TestPlaceStoneEdge(t *testing.T) {
 		if err := b.Put(1, tc.x, tc.y); err != nil {
 			t.Errorf("%s: %v", tc.name, err)
 		}
+	}
+}
+
+/*
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 2 0 0 0 0 0 0
+0 2 1 2 0 0 0 0 0 // 1 should be captured
+0 0 2 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+*/
+
+func TestCaptureStone(t *testing.T) {
+	b := New(9)
+	b.Put(1, 3, 3)
+	b.Put(2, 3, 2)
+	b.Put(2, 4, 3)
+	b.Put(2, 3, 4)
+	b.Put(2, 2, 3)
+
+	if b.Get(3, 3).player != 0 {
+		t.Error("stone was not captured:", b.Get(3, 3))
 	}
 }

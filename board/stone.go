@@ -1,18 +1,22 @@
 package board
 
-import "github.com/Pungyeon/gobaduk/player"
+import (
+	"github.com/Pungyeon/gobaduk/player"
+)
 
 type Stone struct {
-	liberties int
-	player    player.Player
-	groupID   int
+	player player.Player
+	group  *Group
+	x      int
+	y      int
 }
 
-func NewStone(p player.Player, id int) Stone {
+func NewStone(p player.Player, x, y int) Stone {
 	return Stone{
-		liberties: 0,
-		player:    p,
-		groupID:   id,
+		player: p,
+		group:  nil,
+		x:      x,
+		y:      y,
 	}
 }
 
@@ -22,10 +26,22 @@ type Group struct {
 	stones    []Stone
 }
 
-func NewGroup(stone Stone) Group {
+func NewGroup(id int) Group {
 	return Group{
-		liberties: stone.liberties,
-		id:        stone.groupID,
-		stones:    []Stone{stone},
+		liberties: 0,
+		id:        id,
+		stones:    []Stone{},
+	}
+}
+
+func (g *Group) Add(stone Stone) {
+	g.stones = append(g.stones, stone)
+}
+
+func (g *Group) Merge(mergeGroup *Group) {
+	g.liberties += mergeGroup.liberties - 1
+	g.stones = append(g.stones, mergeGroup.stones...)
+	for _, stone := range g.stones {
+		stone.group = g
 	}
 }

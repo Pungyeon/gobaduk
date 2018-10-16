@@ -133,6 +133,10 @@ func TestCaptureStone(t *testing.T) {
 	if b.Get(3, 3).player != 0 {
 		t.Error("stone was not captured:", b.Get(3, 3))
 	}
+
+	if b.Get(3, 2).group.liberties != 4 {
+		t.Error("surrounding stone, was not granted back liberties")
+	}
 }
 
 /*
@@ -167,3 +171,45 @@ func TestCaptureStones(t *testing.T) {
 		t.Errorf("(%d != %d): stone was not captured: %v", b.Get(4, 3).player, player.NONE, b.Get(3, 4))
 	}
 }
+
+/*
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 1 1 0 0 0 0 0
+0 0 1 ! 0 0 0 0 0 // ! is an eventual 2 move
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+*/
+func TestOverlapLiberty(t *testing.T) {
+	b := New(9)
+	b.Put(1, 3, 3)
+	b.Put(1, 3, 4)
+	b.Put(1, 4, 4)
+	expected := 8 // technically, this should be 7, but actually, not taking overlap into account, makes the program more simple
+
+	if b.Get(3, 3).group.liberties != expected {
+		t.Errorf("wrong liberty count for group: expected: %d, actual: %d", expected, b.Get(3, 3).group.liberties)
+	}
+
+	b.Put(2, 4, 3)
+	expected = 6 // because of overlap, this 1 stone will take away 2 liberties
+	if b.Get(3, 3).group.liberties != expected {
+		t.Errorf("wrong liberty count for group: expected: %d, actual: %d", expected, b.Get(3, 3).group.liberties)
+	}
+}
+
+/*
+func TestPrint(t *testing.T) {
+	b := New(9)
+	b.Put(1, 3, 3)
+	b.Put(1, 3, 4)
+	b.Put(1, 4, 4)
+
+	b.Print()
+
+	t.Error()
+}
+*/

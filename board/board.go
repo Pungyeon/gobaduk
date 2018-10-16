@@ -13,7 +13,7 @@ type Board struct {
 	groups            map[int]*Group
 	nextID            int
 	mergeGroups       []int
-	subtractLibGroups map[int]bool
+	subtractLibGroups []int
 }
 
 func New(size int) *Board {
@@ -53,7 +53,7 @@ func (b *Board) Put(playerColor player.Player, x, y int) error {
 	ng.Add(stone)
 
 	b.mergeGroups = make([]int, 0)
-	b.subtractLibGroups = map[int]bool{}
+	b.subtractLibGroups = make([]int, 0)
 
 	if y < b.Size {
 		b.CheckNeighbours(b.Get(x, y+1), &stone)
@@ -74,10 +74,7 @@ func (b *Board) Put(playerColor player.Player, x, y int) error {
 		b.Merge(&ng, b.groups[id])
 	}
 
-	for key, value := range b.subtractLibGroups {
-		fmt.Println(b.groups)
-		fmt.Println("subtracting libs from group:", key)
-		fmt.Println(b.groups[key])
+	for _, key := range b.subtractLibGroups {
 		tmp := b.groups[key]
 		tmp.liberties--
 
@@ -86,8 +83,6 @@ func (b *Board) Put(playerColor player.Player, x, y int) error {
 		}
 
 		b.groups[key] = tmp
-		fmt.Printf("key: %d, value: %v\n", key, value)
-		fmt.Println("liberties", b.groups[key].liberties)
 	}
 
 	_x, _y := b.translate(x, y)
@@ -100,6 +95,32 @@ func (b *Board) removeStones(stones []Stone) {
 		_x, _y := b.translate(stone.x, stone.y)
 		fmt.Printf("Removing Stone: (%d, %d) -> g[%d][%d]\n", stone.x, stone.y, _x, _y)
 		b.grid[_y][_x] = NewStone(player.NONE, stone.x, stone.y)
+		if stone.y < b.Size {
+			b.addLibertyIfOppositePlayer(
+				stone.player, b.Get(stone.x, stone.y+1),
+			) // up
+		}
+		if stone.y > 1 {
+			b.addLibertyIfOppositePlayer(
+				stone.player, b.Get(stone.x, stone.y-1),
+			) // down
+		}
+		if stone.x < b.Size {
+			b.addLibertyIfOppositePlayer(
+				stone.player, b.Get(stone.x+1, stone.y),
+			) // right
+		}
+		if stone.x > 1 {
+			b.addLibertyIfOppositePlayer(
+				stone.player, b.Get(stone.x-1, stone.y),
+			) // left
+		}
+	}
+}
+
+func (b *Board) addLibertyIfOppositePlayer(p player.Player, stone *Stone) {
+	if stone.player == player.Opposite(p) {
+		stone.group.liberties++
 	}
 }
 
@@ -122,7 +143,7 @@ func (b *Board) CheckNeighbours(neighbour *Stone, stone *Stone) {
 		b.mergeGroups = append(b.mergeGroups, neighbour.group.id)
 	}
 	if neighbour.player == player.Opposite(stone.player) {
-		b.subtractLibGroups[neighbour.group.id] = true
+		b.subtractLibGroups = append(b.subtractLibGroups, neighbour.group.id)
 	}
 }
 
@@ -135,4 +156,13 @@ func (b *Board) translate(x, y int) (int, int) {
 	_y := b.Size - y
 	_x := x - 1
 	return _x, _y
+}
+
+func (b *Board) Print() {
+	for y := 0; y < b.Size; y++ {
+		for x := 0; x < b.Size; x++ {
+			fmt.Printf("%d ", b.grid[y][x].player)
+		}
+		fmt.Println()
+	}
 }

@@ -14,6 +14,7 @@ type Board struct {
 	nextID            int
 	mergeGroups       []int
 	subtractLibGroups []int
+	activeKO          Stone
 }
 
 func New(size int) *Board {
@@ -40,9 +41,16 @@ func (b *Board) getNextID() int {
 }
 
 func (b *Board) Put(playerColor player.Player, x, y int) error {
-	if b.Get(x, y).player != player.NONE {
+	check := b.Get(x, y)
+	if check.player != player.NONE {
 		return errors.New("stone already on specified coordinates. stone cannot be placed")
 	}
+
+	fmt.Printf("check: %v, ko: %v\n", check, b.activeKO)
+	if check == &b.activeKO {
+		return errors.New("cannot place stone, on active KO")
+	}
+
 	ng := NewGroup(b.getNextID())
 	stone := Stone{
 		player: playerColor,
@@ -74,27 +82,51 @@ func (b *Board) Put(playerColor player.Player, x, y int) error {
 		b.Merge(&ng, b.groups[id])
 	}
 
+	stonesToRemove := make([]*Group, 0)
 	for _, key := range b.subtractLibGroups {
 		tmp := b.groups[key]
 		tmp.liberties--
 
 		if tmp.liberties == 0 {
-			b.removeStones(tmp.stones)
+			stonesToRemove = append(stonesToRemove, tmp)
 		}
-
 		b.groups[key] = tmp
+	}
+	if ng.liberties == 0 && len(stonesToRemove) == 0 {
+		return errors.New("cannot place stone without liberties, that doesn't capture any stones")
 	}
 
 	_x, _y := b.translate(x, y)
 	b.grid[_y][_x] = stone
+
+	for _, rmGroup := range stonesToRemove {
+		b.removeStones(rmGroup.stones)
+	}
+
+	fmt.Printf("(%d, %d): libs: %d, stones: %d, removed_g: %d\n",
+		x, y,
+		b.grid[_y][_x].group.liberties,
+		len(b.grid[_y][_x].group.stones),
+		len(stonesToRemove))
+	if b.grid[_y][_x].group.liberties == 1 &&
+		len(b.grid[_y][_x].group.stones) == 1 &&
+		len(stonesToRemove) == 1 {
+		if len(stonesToRemove[0].stones) == 1 {
+			// activate KO,
+			// It feels like there is a simpler way of defining a KO...
+			fmt.Println(stonesToRemove[0].stones[0])
+			b.activeKO = stonesToRemove[0].stones[0]
+		}
+	}
+
 	return nil
 }
 
 func (b *Board) removeStones(stones []Stone) {
 	for _, stone := range stones {
 		_x, _y := b.translate(stone.x, stone.y)
-		fmt.Printf("Removing Stone: (%d, %d) -> g[%d][%d]\n", stone.x, stone.y, _x, _y)
 		b.grid[_y][_x] = NewStone(player.NONE, stone.x, stone.y)
+		fmt.Println(b.grid[_y][_x])
 		if stone.y < b.Size {
 			b.addLibertyIfOppositePlayer(
 				stone.player, b.Get(stone.x, stone.y+1),

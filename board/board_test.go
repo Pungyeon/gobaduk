@@ -145,6 +145,73 @@ func TestCaptureStone(t *testing.T) {
 0 0 0 0 0 0 0 0 0
 0 0 0 0 0 0 0 0 0
 0 0 0 0 0 0 0 0 0
+0 0 2 0 0 0 0 0 0
+0 2 ! 2 0 0 0 0 0 // ! should be illegal
+0 0 2 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+*/
+
+func TestIllegalMoveWithoutLiberties(t *testing.T) {
+	b := New(9)
+	b.Put(2, 3, 2)
+	b.Put(2, 4, 3)
+	b.Put(2, 3, 4)
+	b.Put(2, 2, 3)
+
+	if b.Put(1, 3, 3) == nil {
+		t.Error("able to place move, without liberties, that doesn't capture any stones")
+	}
+}
+
+/*
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 2 1 0 0 0 0 0
+0 2 ! 2 1 0 0 0 0 // ! should be legal
+0 0 2 1 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+*/
+
+func TestKO(t *testing.T) {
+	b := New(9)
+	b.Put(2, 3, 2)
+	b.Put(2, 4, 3)
+	b.Put(2, 3, 4)
+	b.Put(2, 2, 3)
+
+	b.Put(1, 4, 2)
+	b.Put(1, 5, 3)
+	b.Put(1, 4, 4)
+
+	if err := b.Put(1, 3, 3); err != nil {
+		t.Error(err)
+	}
+
+	if b.Get(3, 3).group.liberties != 1 {
+		t.Error("stone initialising ko, does not gain liberty:", b.Get(3, 3).group.liberties)
+	}
+
+	if b.Get(4, 3).player != player.NONE {
+		t.Error("4,3 stone not captured:", b.Get(4, 3).player)
+		b.Print()
+	}
+
+	if b.Put(2, 4, 3) == nil || b.Get(4, 3).player != player.BLACK {
+		b.Print()
+		t.Error(b.Get(3, 3))
+		t.Error("allowed to place illegal move, in ko race")
+	}
+}
+
+/*
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
 0 0 2 2 0 0 0 0 0
 0 2 1 1 2 0 0 0 0 // 1 should be captured
 0 0 2 2 0 0 0 0 0

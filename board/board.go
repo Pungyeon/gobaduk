@@ -19,10 +19,11 @@ type Board struct {
 
 func New(size int) *Board {
 	return &Board{
-		Size:   size,
-		grid:   gridInit(size),
-		groups: map[int]*Group{},
-		nextID: 1,
+		Size:     size,
+		grid:     gridInit(size),
+		groups:   map[int]*Group{},
+		nextID:   1,
+		activeKO: NewStone(player.NONE, size*2, size*2),
 	}
 }
 
@@ -46,8 +47,7 @@ func (b *Board) Put(playerColor player.Player, x, y int) error {
 		return errors.New("stone already on specified coordinates. stone cannot be placed")
 	}
 
-	fmt.Printf("check: %v, ko: %v\n", check, b.activeKO)
-	if check == &b.activeKO {
+	if check.x == b.activeKO.x && check.y == b.activeKO.y && playerColor == b.activeKO.player {
 		return errors.New("cannot place stone, on active KO")
 	}
 
@@ -103,11 +103,7 @@ func (b *Board) Put(playerColor player.Player, x, y int) error {
 		b.removeStones(rmGroup.stones)
 	}
 
-	fmt.Printf("(%d, %d): libs: %d, stones: %d, removed_g: %d\n",
-		x, y,
-		b.grid[_y][_x].group.liberties,
-		len(b.grid[_y][_x].group.stones),
-		len(stonesToRemove))
+	b.activeKO = NewStone(player.NONE, b.Size*2, b.Size*2)
 	if b.grid[_y][_x].group.liberties == 1 &&
 		len(b.grid[_y][_x].group.stones) == 1 &&
 		len(stonesToRemove) == 1 {

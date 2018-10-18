@@ -199,10 +199,16 @@ func TestKO(t *testing.T) {
 		b.Print()
 	}
 
-	if b.Put(2, 4, 3) == nil || b.Get(4, 3).player != player.BLACK {
+	if b.Put(2, 4, 3) == nil || b.Get(4, 3).player != player.NONE {
 		b.Print()
 		t.Error(b.Get(3, 3))
 		t.Error("allowed to place illegal move, in ko race")
+	}
+
+	b.Put(2, 7, 7)
+	if b.Put(2, 4, 3) != nil {
+		b.Print()
+		t.Error("KO is still active, even though another move has already been placed")
 	}
 }
 

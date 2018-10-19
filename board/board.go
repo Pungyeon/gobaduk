@@ -1,6 +1,7 @@
 package board
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 
@@ -15,6 +16,8 @@ type Board struct {
 	mergeGroups       []int
 	subtractLibGroups []int
 	activeKO          Stone
+	SGF               SGF
+	AI                bool
 }
 
 func New(size int) *Board {
@@ -23,7 +26,9 @@ func New(size int) *Board {
 		grid:     gridInit(size),
 		groups:   map[int]*Group{},
 		nextID:   1,
-		activeKO: NewStone(player.NONE, size*2, size*2),
+		activeKO: NewStone(player.NONE, size*2, size*2, size*2, size*2),
+		SGF:      NewSGF(),
+		AI:       false,
 	}
 }
 
@@ -51,11 +56,14 @@ func (b *Board) Put(playerColor player.Player, x, y int) error {
 		return errors.New("cannot place stone, on active KO")
 	}
 
+	_x, _y := b.translate(x, y)
 	ng := NewGroup(b.getNextID())
 	stone := Stone{
 		player: playerColor,
 		x:      x,
 		y:      y,
+		_x:     _x,
+		_y:     _y,
 		group:  &ng,
 	}
 	ng.Add(stone)
@@ -63,17 +71,11 @@ func (b *Board) Put(playerColor player.Player, x, y int) error {
 	b.mergeGroups = make([]int, 0)
 	b.subtractLibGroups = make([]int, 0)
 
-	if y < b.Size {
-		b.CheckNeighbours(b.Get(x, y+1), &stone)
-	}
-	if y > 1 {
-		b.CheckNeighbours(b.Get(x, y-1), &stone)
-	}
-	if x < b.Size {
-		b.CheckNeighbours(b.Get(x+1, y), &stone)
-	}
-	if x > 1 {
-		b.CheckNeighbours(b.Get(x-1, y), &stone)
+	if b.CheckNeighbours(x, y+1, &stone) &&
+		b.CheckNeighbours(x, y-1, &stone) &&
+		b.CheckNeighbours(x+1, y, &stone) &&
+		b.CheckNeighbours(x-1, y, &stone) {
+		b.checkEye(&stone)
 	}
 
 	b.groups[ng.id] = &ng
@@ -96,14 +98,14 @@ func (b *Board) Put(playerColor player.Player, x, y int) error {
 		return errors.New("cannot place stone without liberties, that doesn't capture any stones")
 	}
 
-	_x, _y := b.translate(x, y)
 	b.grid[_y][_x] = stone
+	b.SGF.Move(stone)
 
 	for _, rmGroup := range stonesToRemove {
 		b.removeStones(rmGroup.stones)
 	}
 
-	b.activeKO = NewStone(player.NONE, b.Size*2, b.Size*2)
+	b.activeKO = NewStone(player.NONE, b.Size*2, b.Size*2, b.Size*2, b.Size*2)
 	if b.grid[_y][_x].group.liberties == 1 &&
 		len(b.grid[_y][_x].group.stones) == 1 &&
 		len(stonesToRemove) == 1 {
@@ -121,7 +123,7 @@ func (b *Board) Put(playerColor player.Player, x, y int) error {
 func (b *Board) removeStones(stones []Stone) {
 	for _, stone := range stones {
 		_x, _y := b.translate(stone.x, stone.y)
-		b.grid[_y][_x] = NewStone(player.NONE, stone.x, stone.y)
+		b.grid[_y][_x] = NewStone(player.NONE, stone.x, stone.y, _x, _y)
 		fmt.Println(b.grid[_y][_x])
 		if stone.y < b.Size {
 			b.addLibertyIfOppositePlayer(
@@ -163,16 +165,28 @@ func (b *Board) Merge(group *Group, mergeGroup *Group) {
 	}
 }
 
-func (b *Board) CheckNeighbours(neighbour *Stone, stone *Stone) {
-	if neighbour.player == player.NONE {
-		stone.group.liberties++
+func (b *Board) CheckNeighbours(x, y int, stone *Stone) bool {
+	fmt.Printf("x: %d, y: %d\n", x, y)
+	if x < 1 || x > b.Size || y < 1 || y > b.Size {
+		return true // check if out of bounds
 	}
+	neighbour := b.Get(x, y)
+
 	if neighbour.player == stone.player {
 		b.mergeGroups = append(b.mergeGroups, neighbour.group.id)
+		return true
+	}
+	if neighbour.player == player.NONE {
+		stone.group.liberties++
 	}
 	if neighbour.player == player.Opposite(stone.player) {
 		b.subtractLibGroups = append(b.subtractLibGroups, neighbour.group.id)
 	}
+	return false
+}
+
+func (b *Board) checkEye(stone *Stone) {
+	// check for eye
 }
 
 func (b *Board) Get(x, y int) *Stone {
@@ -193,4 +207,28 @@ func (b *Board) Print() {
 		}
 		fmt.Println()
 	}
+}
+
+type SGF struct {
+	sequence *bytes.Buffer
+}
+
+func NewSGF() SGF {
+	return SGF{
+		sequence: bytes.NewBufferString("("),
+	}
+}
+
+func (s *SGF) Move(stone Stone) {
+	s.sequence.WriteString(";")
+	s.sequence.WriteString(stone.Player())
+	s.sequence.WriteString("[")
+	s.sequence.WriteString(stone.X())
+	s.sequence.WriteString(stone.Y())
+	s.sequence.WriteString("]")
+}
+
+func (s *SGF) String() string {
+	tmp := s.sequence.String()
+	return tmp + ")"
 }

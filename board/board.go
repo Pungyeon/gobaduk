@@ -71,12 +71,10 @@ func (b *Board) Put(playerColor player.Player, x, y int) error {
 	b.mergeGroups = make([]int, 0)
 	b.subtractLibGroups = make([]int, 0)
 
-	if b.CheckNeighbours(x, y+1, &stone) &&
-		b.CheckNeighbours(x, y-1, &stone) &&
-		b.CheckNeighbours(x+1, y, &stone) &&
-		b.CheckNeighbours(x-1, y, &stone) {
-		b.checkEye(&stone)
-	}
+	b.CheckNeighbours(x, y+1, &stone)
+	b.CheckNeighbours(x, y-1, &stone)
+	b.CheckNeighbours(x+1, y, &stone)
+	b.CheckNeighbours(x-1, y, &stone)
 
 	b.groups[ng.id] = &ng
 

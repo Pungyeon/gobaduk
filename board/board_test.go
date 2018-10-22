@@ -275,6 +275,44 @@ func TestOverlapLiberty(t *testing.T) {
 }
 
 /*
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 1 1 1 0 0 0 0
+0 0 1 0 1 0 0 0 0
+0 0 0 1 1 0 0 0 0
+0 0 0 0 0 0 0 0 0
+*/
+
+func TestCheckEye(t *testing.T) {
+	b := New(9)
+	b.AI = true
+
+	b.Put(1, 3, 3)
+	b.Put(1, 3, 4)
+	b.Put(1, 4, 4)
+	b.Put(1, 4, 2)
+	b.Put(1, 5, 3)
+	b.Put(2, 5, 4)
+	b.Put(1, 5, 2)
+	b.Put(1, 3, 2)
+
+	_x, _y := b.translate(4, 3)
+	s := NewStone(1, 4, 3, _x, _y)
+	if b.checkEye(&s) != true {
+		b.Print()
+		t.Error("point not identified as an eye")
+	}
+
+	if b.Put(1, 4, 3) == nil {
+		b.Print()
+		t.Error("point not identified as an eye in Put()")
+	}
+}
+
+/*
 func TestPrint(t *testing.T) {
 	b := New(9)
 	b.Put(1, 3, 3)

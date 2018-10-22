@@ -71,10 +71,16 @@ func (b *Board) Put(playerColor player.Player, x, y int) error {
 	b.mergeGroups = make([]int, 0)
 	b.subtractLibGroups = make([]int, 0)
 
-	b.CheckNeighbours(x, y+1, &stone)
-	b.CheckNeighbours(x, y-1, &stone)
-	b.CheckNeighbours(x+1, y, &stone)
-	b.CheckNeighbours(x-1, y, &stone)
+	up := b.CheckNeighbours(x, y+1, &stone)
+	down := b.CheckNeighbours(x, y-1, &stone)
+	right := b.CheckNeighbours(x+1, y, &stone)
+	left := b.CheckNeighbours(x-1, y, &stone)
+
+	if up && down && right && left && b.AI {
+		if b.checkEye(&stone) {
+			return errors.New("should not place a stone in liberty")
+		}
+	}
 
 	b.groups[ng.id] = &ng
 
@@ -183,8 +189,23 @@ func (b *Board) CheckNeighbours(x, y int, stone *Stone) bool {
 	return false
 }
 
-func (b *Board) checkEye(stone *Stone) {
-	// check for eye
+func (b *Board) checkEye(stone *Stone) bool {
+	diagonalNeighbors := []*Stone{b.Get(stone.x+1, stone.y+1), // upper right
+		b.Get(stone.x-1, stone.y+1), // upper left
+		b.Get(stone.x+1, stone.y-1), // bottom right
+		b.Get(stone.x-1, stone.y-1), // bottom left
+	}
+
+	total := 0
+	for _, nb := range diagonalNeighbors {
+		fmt.Println(nb)
+		if nb.player == stone.player { // || nb.player == player.NONE {
+			total++
+		}
+	}
+
+	fmt.Println("total:", total)
+	return total >= 3
 }
 
 func (b *Board) Get(x, y int) *Stone {

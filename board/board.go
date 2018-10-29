@@ -22,14 +22,13 @@ type Board struct {
 
 func New(size int) *Board {
 	return &Board{
-		Size:     size,
-		grid:     gridInit(size),
-		groups:   map[int]*Group{},
-		nextID:   1,
-		activeKO: NewStone(player.NONE, size*2, size*2, size*2, size*2),
-		SGF:      NewSGF(),
-		AI:       false,
-	}
+		Size:           size,
+		grid:           gridInit(size),
+		groups:         map[int]*Group{},
+		nextID:         1,
+		activeKO:       NewStone(player.NONE, size*2, size*2, size*2, size*2),
+		SGF:            NewSGF(),
+		AI:             false,
 }
 
 func gridInit(size int) [][]Stone {
